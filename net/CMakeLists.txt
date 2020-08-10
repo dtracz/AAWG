@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 project(ssd)
 
+set(CMAKE_CXX_FLAGS_DEBUG_INIT "-Wall -g -O0")
+set(CMAKE_CXX_FLAGS_RELEASE_INIT "-O3")
+
 find_package(Torch REQUIRED)
 # add dir with opencv *.so files
   link_directories(/usr/lib/x86_64-linux-gnu/)

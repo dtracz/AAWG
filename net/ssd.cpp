@@ -3,8 +3,14 @@
 #include <tuple>
 #include <vector>
 
-#include <torch/script.h>
-#include <opencv2/opencv.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
+
+#include "torch/csrc/api/include/torch/types.h"
+#include "torch/csrc/autograd/generated/variable_factories.h"
+#include "torch/csrc/jit/api/module.h"
+#include "torch/csrc/jit/serialization/import.h"
+
 
 
 struct Frame {

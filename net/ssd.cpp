@@ -1,30 +1,11 @@
-#include "ATen/Context.h"
-#include "ATen/Functions.h"
-#include "ATen/TensorIndexing.h"
-#include "ATen/core/TensorBody.h"
-#include "ATen/core/ivalue_inl.h"
-#include "ATen/core/stack.h"
-#include "ATen/record_function.h"
-#include "c10/util/Logging.h"
-#include "torch/csrc/api/include/torch/types.h"
-#include "torch/csrc/autograd/generated/variable_factories.h"
-#include "torch/csrc/jit/api/module.h"
-#include <mutex>
-#include <opencv2/core/core_c.h>
-#include <opencv2/core/types.hpp>
-#include <opencv2/imgcodecs.hpp>
-#include <opencv2/imgproc.hpp>
-#include <ostream>
-#include <torch/script.h>
-#include <memory>
 #include <iostream>
 #include <string>
 #include <tuple>
-#include <unordered_set>
-#include <utility>
-#include <valarray>
 #include <vector>
+
+#include <torch/script.h>
 #include <opencv2/opencv.hpp>
+
 
 struct Frame {
     int label;
@@ -33,15 +14,12 @@ struct Frame {
 
     Frame(int label, float prob, float w0, float h0, float w1, float h1):
         label(label), prob(prob), pos{w0, h0, w1, h1} { }
-    Frame(int label, float prob, float pos[4]): label(label), prob(prob) {
-        for (size_t i = 0; i < 4; i++)
-            this->pos[i] = pos[i];
-    }
 
     float getArea() {
         return (pos[2] - pos[0]) * (pos[3] - pos[1]);
     }
 };
+
 
 std::ostream& operator<<(std::ostream& os, Frame f) {
     os << f.label << " " << f.prob << " :\t"
@@ -50,9 +28,10 @@ std::ostream& operator<<(std::ostream& os, Frame f) {
     return os;
 }
 
+
 class FrameClass {
   private:
-    float threshold = 0.80;
+    float _threshold = 0.80;
     std::shared_ptr<std::vector<Frame>> _framesPtr;
 
     float _getOverlapArea(Frame& f1, Frame& f2) {
@@ -73,7 +52,7 @@ class FrameClass {
     FrameClass add(Frame frame) {
         if (_framesPtr->at(0).label != frame.label)
             return FrameClass(frame);
-        if (_getOverlapArea(_framesPtr->at(0), frame) < threshold)
+        if (_getOverlapArea(_framesPtr->at(0), frame) < _threshold)
             return FrameClass(frame);
         if (_framesPtr->at(0).prob < frame.prob)
             std::swap((*_framesPtr)[0], frame);
@@ -93,15 +72,28 @@ class FrameClass {
     }
 };
 
-class ObjFinder {
+
+class Net {
   private:
-    torch::jit::script::Module module;
+    torch::jit::script::Module _module;
 
-    cv::Size inp_size;
-    torch::Tensor means = torch::full({3}, 127.0);
-    float stdev = 128.0;
+    cv::Size _inp_size = cv::Size(300, 300);
+    torch::Tensor _means = torch::full({3}, 127.0);
+    float _stdev = 128.0;
 
-    size_t filter_results(torch::Tensor* preds, torch::Tensor* frames,
+    auto _cvprepare(cv::Mat* parsed, const cv::Mat& cv_img) {
+        cv::cvtColor(cv_img, *parsed, cv::COLOR_BGR2RGB);
+        cv::resize(*parsed, *parsed, _inp_size);
+        parsed->convertTo(*parsed, CV_32F, 1.0);
+        auto img_tensor = torch::from_blob(parsed->data, {1, 300, 300, 3});
+        img_tensor -= _means;
+        img_tensor /= _stdev;
+        img_tensor.transpose_(1, 3);
+        img_tensor.transpose_(2, 3);
+        return img_tensor;
+    }
+
+    size_t _filter_results(torch::Tensor* preds, torch::Tensor* frames,
                         float threshold = 0.5) {
         torch::Tensor maxes = preds->argmax(1);
         *preds = preds->index(maxes > 0);
@@ -114,54 +106,9 @@ class ObjFinder {
         return preds->sizes()[0];
     }
 
-
-  public:
-    ObjFinder(std::string mod_path) {
-        module = torch::jit::load(mod_path);
-        inp_size = cv::Size(300, 300);
-    }
-
-
-    std::vector<Frame> operator()(cv::Mat& image) {
-        cv::Size orginal_size = image.size();
-        cv::cvtColor(image, image, cv::COLOR_BGR2RGB);
-        cv::resize(image, image, inp_size);
-        image.convertTo(image, CV_32F, 1.0);
-        auto img_tensor = torch::from_blob(image.data, {1, 300, 300, 3});
-        img_tensor-= means;
-        img_tensor /= stdev;
-        img_tensor.transpose_(1, 3);
-        img_tensor.transpose_(2, 3);
-        // img_tensor = img_tensor.transpose(2, 3);
-
-        // std::cout << img_tensor.sizes() << std::endl;
-
-        // std::cout << "***" << std::endl;
-        // auto img_part = img_tensor.index({0, 0,
-        //         torch::indexing::Slice(140, 165),
-        //         torch::indexing::Slice(172, 180)
-        //         });
-        // std::cout << img_part.sizes() << std::endl;
-        // std::cout << img_part << std::endl;
-
-        // std::cout << ":: " << img_tensor.sizes() << std::endl;
-
-        std::vector<torch::jit::IValue> inputs;
-        inputs.emplace_back(img_tensor);
-
-        torch::jit::IValue ans = module.forward(inputs);
-
-        torch::ivalue::Tuple tuple = *(ans.toTuple().get());
-        torch::Tensor preds = tuple.elements().at(0).toTensor()[0];
-        torch::Tensor frames = tuple.elements().at(1).toTensor()[0];
-
+    auto _parse_frames(const torch::Tensor& preds, const torch::Tensor& frames) {
         std::vector<FrameClass> objects;
-        if(filter_results(&preds, &frames) > 0) {
-            frames.index({"...", 0}) *= orginal_size.width;
-            frames.index({"...", 1}) *= orginal_size.height;
-            frames.index({"...", 2}) *= orginal_size.width;
-            frames.index({"...", 3}) *= orginal_size.height;
-
+        if(preds.sizes()[0] > 0) {
             auto maxes = preds.max(1);
             auto probs = std::get<0>(maxes);
             auto labels = std::get<1>(maxes);
@@ -187,50 +134,51 @@ class ObjFinder {
         return result;
     }
 
+  public:
+    Net(std::string mod_path) {
+        _module = torch::jit::load(mod_path);
+    }
 
+
+    std::vector<Frame> operator()(const cv::Mat& cv_img) {
+        cv::Size orginal_size = cv_img.size();
+        cv::Mat parsed_img;
+        torch::Tensor img_tensor = _cvprepare(&parsed_img, cv_img);
+
+        std::vector<torch::jit::IValue> inputs;
+        inputs.emplace_back(img_tensor);
+        torch::jit::IValue ans = _module.forward(inputs);
+        torch::ivalue::Tuple tuple = *(ans.toTuple().get());
+        torch::Tensor preds = tuple.elements().at(0).toTensor()[0];
+        torch::Tensor frames = tuple.elements().at(1).toTensor()[0];
+
+        size_t n_results = _filter_results(&preds, &frames);
+        if(n_results > 0) {
+            frames.index({"...", 0}) *= orginal_size.width;
+            frames.index({"...", 1}) *= orginal_size.height;
+            frames.index({"...", 2}) *= orginal_size.width;
+            frames.index({"...", 3}) *= orginal_size.height;
+        }
+        auto result = _parse_frames(preds, frames);
+        return result;
+    }
 };
 
 
-int main(int argc, const char* argv[])
-{
+int main(int argc, const char** argv) {
     if (argc != 3) {
-        std::cerr << "Please enter the traced model path and image" << std::endl;
+        std::cerr << "Please enter the traced model path and image path" << std::endl;
         return -1;
     }
-    // std::shared_ptr<torch::jit::script::Module> module;
-    // torch::jit::script::Module module = torch::jit::load(argv[1]);
-    // try {
-    //     // Deserialize the ScriptModule from a file using torch::jit::load().
-    //     module = torch::jit::load(argv[1]);
-    // } catch (const c10::Error& e) {
-    //     std::cerr << "error loading the model\n";
-    //     return -1;
-    // }
-    // std::cerr << "loaded" << std::endl;
-
+    const char* model_path = argv[1];
     const char* img_path = argv[2];
+
+    Net net(model_path);
     cv::Mat image = cv::imread(img_path, cv::IMREAD_COLOR);
-
-
-    ObjFinder finder(argv[1]);
-    auto frames = finder(image);
+    auto frames = net(image);
 
     for (auto& frame : frames)
         std::cout << frame << std::endl;
-
-    // // cv::resize(image, image, cv::Size(224, 224));
-    // image.convertTo(image, CV_32F, 2.0/255);
-    // auto img_tensor = torch::from_blob(image.data, {1, 28, 28});
-    // img_tensor -= 1;
-    // // std::cout << img_tensor << std::endl;
-    //
-    // std::vector<torch::jit::IValue> inputs;
-    // inputs.emplace_back(img_tensor);
-    //
-    // auto ans = module.forward(inputs);
-    // std::cout << ans.toTensor() << std::endl;
-
-
 
     return 0;
 }

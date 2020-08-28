@@ -17,23 +17,39 @@ main = do
     run port app
  
 app req respond = do
-    bs <- getRequestBodyChunk req
-    res <- getImage bs
-    let body = BU.toString bs
-    putStrLn $ ">>" ++ res ++ "<<"
+    bs <- getImgBS req
+    res <- saveImage bs
+    putStrLn $ res
     res <- respond $ respConst res
     return res
 
-getImage :: BU.ByteString -> IO String
-getImage bs = do
+
+getImgBS :: Request -> IO BU.ByteString
+getImgBS req = do
+    let leftLgh = getLgh $ requestBodyLength req
+    bsl <- getImgBS' [] req leftLgh
+    return $ mconcat $ reverse bsl 
+
+getImgBS' :: [BU.ByteString] -> Request -> Int -> IO [BU.ByteString]
+getImgBS' bsl req leftLgh
+    | leftLgh == 0 = return bsl
+    | otherwise = do
+        bs <- getRequestBodyChunk req
+        getImgBS' (bs:bsl) req (leftLgh - (BU.length bs))
+    
+getLgh (KnownLength kl) = fromIntegral kl
+
+
+saveImage :: BU.ByteString -> IO String
+saveImage bs = do
     let bs' = decodeLenient bs
     case decodeImage bs' of
         Left msg -> return msg 
-        Right img -> saveImage img
+        Right img -> saveImage' img
 
-saveImage :: DynamicImage -> IO String
-saveImage img = do
-    savePngImage "test.png" img
+saveImage' :: DynamicImage -> IO String
+saveImage' img = do
+    saveJpgImage 100 "test.jpg" img
     return "OK"
 
 

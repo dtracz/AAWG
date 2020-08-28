@@ -13,19 +13,19 @@ main = do
     putStrLn $ "Listening on port " ++ show port
     run port app
  
-app req respond =
-    do
-        res <- respond $ reaction $ action (showText $ head (pathInfo req))
-        putStrLn $ "!!!!!!!!"
-        return res
+app req respond = do
+    -- let reqStr = showText $ head (pathInfo req)
+    iobs <- getRequestBodyChunk req
+    let body = BU.toString iobs
+    putStrLn $ ">>" ++ body ++ "<<"
+    res <- respond $ respConst "OK"
+    return res
  
-action :: String -> String
-action str = ">" ++ str ++ "<" 
 
+-- bsbConst :: Show a => a -> Data.ByteString.Builder.Internal.Builder
+bsbConst x = mconcat $ map copyByteString [ BU.fromString $ show x ]
 
-getAns x = mconcat $ map copyByteString [ BU.fromString $ show x ]
-
-reaction :: Show a => a -> Response
-reaction x = responseBuilder status200 [("Content-Type", "text/html")] $ getAns x
+respConst :: Show a => a -> Response
+respConst x = responseBuilder status200 [("Content-Type", "text/html")] $ bsbConst x
 
 

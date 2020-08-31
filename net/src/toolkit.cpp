@@ -34,3 +34,26 @@ FrameClass FrameClass::add(Frame frame) {
 }
 
 
+
+NetRunner& NetRunner::getNetRunner() {
+    static NetRunner netRunner;
+    return netRunner;
+}
+
+
+int32_t NetRunner::pushImg(const char* img_path) {
+    auto&& img = cv::imread(img_path, cv::IMREAD_COLOR);
+    _imgs.push_back(img);
+    return _imgs.size();
+}
+
+
+int32_t NetRunner::runNet(Frame* frames) {
+    int32_t n_imgs = _imgs.size();
+    _imgs.clear();
+    for (int i = 0; i < n_imgs; i++)
+        frames[i] = Frame(i, 0.9, 0.4, 0.4, 0.6, 0.6);
+    return n_imgs;
+}
+
+

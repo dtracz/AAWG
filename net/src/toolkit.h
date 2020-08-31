@@ -3,7 +3,9 @@
 
 #include <vector>
 #include <memory>
+#include <opencv2/imgcodecs.hpp>
 #include "Frame.h"
+#include "Net.h"
 
 
 std::ostream& operator<<(std::ostream&, Frame);
@@ -36,6 +38,28 @@ class FrameClass {
     }
 
 };  // class FrameClass
+
+
+class NetRunner {
+  private:
+    Net* _net;
+    std::vector<cv::Mat> _imgs;
+
+    NetRunner() = default;
+    NetRunner(NetRunner&&) = default;
+    NetRunner& operator=(NetRunner&&) = default;
+
+  public:
+    static NetRunner& getNetRunner();
+
+    NetRunner(const NetRunner&) = delete;
+    NetRunner& operator=(const NetRunner&) = delete;
+
+    int32_t pushImg(const char*);
+
+    int32_t runNet(Frame* frames);
+      
+};  // class NetRunner;
 
 
 #endif  // TOOLKIT_H_

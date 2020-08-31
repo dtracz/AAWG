@@ -18,9 +18,11 @@ class Net {
 
     torch::Tensor _cvprepare(cv::Mat*, const cv::Mat&);
 
-    size_t _filter_results(torch::Tensor*, torch::Tensor*, float threshold = 0.5);
+    size_t _filter_results(torch::Tensor*, torch::Tensor*,
+                           float threshold = 0.5);
 
-    std::vector<Frame> _parse_frames(const torch::Tensor&, const torch::Tensor&);
+    std::vector<Frame> _parse_frames(const torch::Tensor&,
+                                     const torch::Tensor&);
 
   public:
     inline Net(std::string mod_path) {

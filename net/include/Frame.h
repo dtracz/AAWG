@@ -17,7 +17,7 @@ struct Frame {
         return (pos[2] - pos[0]) * (pos[3] - pos[1]);
     }
 
-};  // class Frame
+};  // struct Frame
 
 
 #endif  // FRAME_H_

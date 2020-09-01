@@ -22,8 +22,11 @@ main = do
  
 app req respond = do
     bs <- getImgBS req
-    res <- saveImage bs
+    let imgName = "test_name.jpg"
+    res <- saveImage imgName bs
+    frames <- detectTarget imgName
     putStrLn $ res
+    putStrLn $ show frames
     res <- respond $ respConst res
     return res
 

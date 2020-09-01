@@ -9,7 +9,7 @@ find_package(Torch REQUIRED)
 # add dir with opencv *.so files
   link_directories(/usr/lib/x86_64-linux-gnu/)
  
-add_library(ssd STATIC src/Net.cpp src/toolkit.cpp)
+  add_library(ssd SHARED src/Net.cpp src/toolkit.cpp)
 target_include_directories(ssd PUBLIC ./include)
 target_link_libraries(ssd "${TORCH_LIBRARIES}")
 # add required opencv shared objects

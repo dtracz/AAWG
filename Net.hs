@@ -1,24 +1,14 @@
+module Net where
+
 import Foreign
 import Foreign.Ptr
 import Foreign.C
 import Foreign.C.String
 import Foreign.Storable
 
-data Frame = Frame 
-        { label :: CInt
-        , prob  :: Float
-        , left  :: Float
-        , botom :: Float
-        , right :: Float
-        , top   :: Float
-        -- , frame :: Ptr () -- C++ constructor, ignoring
-        -- , getArea :: FunPtr (() -> Float)
-        } deriving (Show)
+import GlobalData
 
-sizeOfFrame = 24
 
--- getFrame label prob left botom right top =
---     Frame label prob left botom right top nullPtr nullPtr
 
 instance Storable Frame where
     alignment _ = 8
@@ -80,10 +70,10 @@ getFrameList nFrames = do
     memToList [] framesPtr sizeOfFrame nFrames'
 
 
-detectTarget :: String -> Int -> IO [Frame]
-detectTarget fname nCams = do
+detectTarget :: String -> IO [Frame]
+detectTarget fname = do
     nStored <- pushImg fname
-    if nStored == nCams then
+    if nStored == _N_CAMS then
         getFrameList nStored
     else
         return []

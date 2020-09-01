@@ -8,8 +8,12 @@ import qualified Data.ByteString.UTF8 as BU
 import Data.Monoid
 import Data.ByteString.Base64
 import Data.Text.Internal
-
 import Codec.Picture
+
+import Net
+import GlobalData 
+
+
 
 main = do
     let port = 3000
@@ -39,16 +43,16 @@ getImgBS' bsl req leftLgh = do
     getImgBS' (bs:bsl) req (leftLgh - (BU.length bs))
     
 
-saveImage :: BU.ByteString -> IO String
-saveImage bs = do
+saveImage :: String -> BU.ByteString -> IO String
+saveImage imgName bs = do
     let bs' = decodeLenient bs
     case decodeImage bs' of
         Left msg -> return msg 
-        Right img -> saveImage' img
+        Right img -> saveImage' imgName img
 
-saveImage' :: DynamicImage -> IO String
-saveImage' img = do
-    saveJpgImage 100 "test.jpg" img
+saveImage' :: String -> DynamicImage -> IO String
+saveImage' imgName img = do
+    saveJpgImage 100 imgName img
     return "OK"
 
 

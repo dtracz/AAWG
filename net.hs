@@ -1,4 +1,3 @@
-
 import Foreign
 import Foreign.Ptr
 import Foreign.C
@@ -67,4 +66,26 @@ runNet framesPtr = do
     return $ fromInteger $ toInteger n
 
 
+memToList :: Storable a => [a] -> Ptr a -> Int -> Int -> IO [a]
+memToList lst ptr aSize 0 = return $ reverse lst
+memToList lst ptr aSize n = do
+    item <- peek ptr
+    let ptr' = plusPtr ptr aSize
+    memToList (item:lst) ptr' aSize $ n-1
+
+getFrameList :: Int -> IO [Frame]
+getFrameList nFrames = do
+    framesPtr <- mallocBytes (sizeOfFrame * nFrames)
+    nFrames' <- runNet $ castPtr framesPtr
+    memToList [] framesPtr sizeOfFrame nFrames'
+
+
+detectTarget :: String -> Int -> IO [Frame]
+detectTarget fname nCams = do
+    nStored <- pushImg fname
+    if nStored == nCams then
+        getFrameList nStored
+    else
+        return []
+    
 

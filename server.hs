@@ -24,6 +24,8 @@ app req respond = do
     return res
 
 
+getLgh (KnownLength kl) = fromIntegral kl
+
 getImgBS :: Request -> IO BU.ByteString
 getImgBS req = do
     let leftLgh = getLgh $ requestBodyLength req
@@ -31,14 +33,11 @@ getImgBS req = do
     return $ mconcat $ reverse bsl 
 
 getImgBS' :: [BU.ByteString] -> Request -> Int -> IO [BU.ByteString]
-getImgBS' bsl req leftLgh
-    | leftLgh == 0 = return bsl
-    | otherwise = do
-        bs <- getRequestBodyChunk req
-        getImgBS' (bs:bsl) req (leftLgh - (BU.length bs))
+getImgBS' bsl req 0 = return bsl
+getImgBS' bsl req leftLgh = do
+    bs <- getRequestBodyChunk req
+    getImgBS' (bs:bsl) req (leftLgh - (BU.length bs))
     
-getLgh (KnownLength kl) = fromIntegral kl
-
 
 saveImage :: BU.ByteString -> IO String
 saveImage bs = do

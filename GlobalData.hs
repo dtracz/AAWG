@@ -20,6 +20,15 @@ sizeOfFrame = 24 :: Int
 -- getFrame label prob left botom right top =
 --     Frame label prob left botom right top nullPtr nullPtr
 
+
+data Position = Cartesian Double Double Double
+              | Spherical Double Double Double
+    deriving (Show)
+
+
 _N_CAMS = 2 :: Int
 
+_LEFT_CAM_POS = Cartesian (-1.2) 0.2 0.75
+_RIGHT_CAM_POS = Cartesian 0.65 0.2 0.75
+_CNN_POS = Cartesian 0 0 0
 

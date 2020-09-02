@@ -45,12 +45,12 @@ class NetRunner {
     Net* _net;
     std::vector<cv::Mat> _imgs;
 
-    NetRunner() = default;
+    NetRunner(): _net(nullptr) { }
     NetRunner(NetRunner&&) = default;
     NetRunner& operator=(NetRunner&&) = default;
 
   public:
-    static NetRunner& getNetRunner();
+    static NetRunner& getNetRunner(const char*);
 
     NetRunner(const NetRunner&) = delete;
     NetRunner& operator=(const NetRunner&) = delete;

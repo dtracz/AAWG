@@ -16,7 +16,7 @@ class Net {
     torch::Tensor _means = torch::full({3}, 127.0);
     float _stdev = 128.0;
 
-    torch::Tensor _cvprepare(cv::Mat*, const cv::Mat&);
+    torch::Tensor _cvprepare(std::vector<cv::Mat>&);
 
     size_t _filter_results(torch::Tensor*, torch::Tensor*,
                            float threshold = 0.5);
@@ -29,7 +29,7 @@ class Net {
         _module = torch::jit::load(mod_path);
     }
 
-    std::vector<Frame> operator()(const cv::Mat&);
+    std::vector<std::vector<Frame>> operator()(std::vector<cv::Mat>&);
 
 };  // class Net
 

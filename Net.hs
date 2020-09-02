@@ -35,23 +35,28 @@ instance Storable Frame where
 
 data NetRunner
 
-foreign import ccall "_ZN9NetRunner12getNetRunnerEv"
-               c_getNetRunner :: IO (Ptr NetRunner)
+foreign import ccall "_ZN9NetRunner12getNetRunnerEPKc"
+               c_getNetRunner :: CString -> IO (Ptr NetRunner)
 foreign import ccall "_ZN9NetRunner7pushImgEPKc"
                c_pushImg :: Ptr NetRunner -> CString -> IO CInt
 foreign import ccall "_ZN9NetRunner6runNetEP5Frame"
                c_runNet :: Ptr NetRunner -> Ptr Frame -> IO CInt
 
+getNetRunner :: IO (Ptr NetRunner)
+getNetRunner = do
+    modelPath <- newCString  "./net/traced_mobilenet_v2-ssd.pt"
+    c_getNetRunner modelPath
+
 pushImg :: String -> IO Int
 pushImg fname = do
     cs_fname <- newCString fname
-    netRunner <- c_getNetRunner
+    netRunner <- getNetRunner
     n <- c_pushImg netRunner cs_fname
     return $ fromInteger $ toInteger n
 
 runNet :: Ptr Frame -> IO Int
 runNet framesPtr = do
-    netRunner <- c_getNetRunner
+    netRunner <- getNetRunner
     n <- c_runNet netRunner framesPtr
     return $ fromInteger $ toInteger n
 

@@ -15,16 +15,21 @@
 
 
 
-torch::Tensor Net::_cvprepare(cv::Mat* parsed, const cv::Mat& cv_img) {
-    cv::cvtColor(cv_img, *parsed, cv::COLOR_BGR2RGB);
-    cv::resize(*parsed, *parsed, _inp_size);
-    parsed->convertTo(*parsed, CV_32F, 1.0);
-    auto img_tensor = torch::from_blob(parsed->data, {1, 300, 300, 3});
-    img_tensor -= _means;
-    img_tensor /= _stdev;
-    img_tensor.transpose_(1, 3);
-    img_tensor.transpose_(2, 3);
-    return img_tensor;
+torch::Tensor Net::_cvprepare(std::vector<cv::Mat>& cv_imgs) {
+    std::vector<torch::Tensor> img_tensors;
+    for (auto& cv_img : cv_imgs) {
+        cv::cvtColor(cv_img, cv_img, cv::COLOR_BGR2RGB);
+        cv::resize(cv_img, cv_img, _inp_size);
+        cv_img.convertTo(cv_img, CV_32F, 1.0);
+        auto&& img_tensor = torch::from_blob(cv_img.data, {1, 300, 300, 3});
+        img_tensors.push_back(img_tensor);
+    }
+    auto imgs_tensor = torch::cat(img_tensors, 0);
+    imgs_tensor -= _means;
+    imgs_tensor /= _stdev;
+    imgs_tensor.transpose_(1, 3);
+    imgs_tensor.transpose_(2, 3);
+    return imgs_tensor;
 }
 
 
@@ -78,27 +83,33 @@ std::vector<Frame> Net::_parse_frames(const torch::Tensor& preds,
 }
 
 
-std::vector<Frame> Net::operator()(const cv::Mat& cv_img) {
-    cv::Size orginal_size = cv_img.size();
-    cv::Mat parsed_img;
-    torch::Tensor img_tensor = _cvprepare(&parsed_img, cv_img);
-
+std::vector<std::vector<Frame>> Net::operator()(std::vector<cv::Mat>& cv_imgs) {
+    std::vector<cv::Size> orginal_sizes;
+    for (auto& cv_img : cv_imgs)
+        orginal_sizes.push_back(cv_img.size());
+    auto imgs_tensor =_cvprepare(cv_imgs); 
+   
     std::vector<torch::jit::IValue> inputs;
-    inputs.emplace_back(img_tensor);
+    inputs.emplace_back(imgs_tensor);
     torch::jit::IValue ans = _module.forward(inputs);
     torch::ivalue::Tuple tuple = *(ans.toTuple().get());
-    torch::Tensor preds = tuple.elements().at(0).toTensor()[0];
-    torch::Tensor frames = tuple.elements().at(1).toTensor()[0];
 
-    size_t n_results = _filter_results(&preds, &frames);
-    if(n_results > 0) {
-        frames.index({"...", 0}) *= orginal_size.width;
-        frames.index({"...", 1}) *= orginal_size.height;
-        frames.index({"...", 2}) *= orginal_size.width;
-        frames.index({"...", 3}) *= orginal_size.height;
+    std::vector<std::vector<Frame>> results;
+    for (size_t i = 0; i < orginal_sizes.size(); i++) {
+        torch::Tensor preds = tuple.elements().at(0).toTensor()[i];
+        torch::Tensor frames = tuple.elements().at(1).toTensor()[i];
+
+        size_t n_results = _filter_results(&preds, &frames);
+        if(n_results > 0) {
+            frames.index({"...", 0}) *= orginal_sizes[i].width;
+            frames.index({"...", 1}) *= orginal_sizes[i].height;
+            frames.index({"...", 2}) *= orginal_sizes[i].width;
+            frames.index({"...", 3}) *= orginal_sizes[i].height;
+        }
+        auto result = _parse_frames(preds, frames);
+        results.push_back(result);
     }
-    auto result = _parse_frames(preds, frames);
-    return result;
+    return results;
 }
 
 

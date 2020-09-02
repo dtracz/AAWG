@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <vector>
 #include <memory>
 #include <ostream>
@@ -35,14 +36,17 @@ FrameClass FrameClass::add(Frame frame) {
 
 
 
-NetRunner& NetRunner::getNetRunner() {
+NetRunner& NetRunner::getNetRunner(const char* model_path) {
     static NetRunner netRunner;
+    if (netRunner._net == nullptr)
+        netRunner._net = new Net(model_path);
     return netRunner;
 }
 
 
 int32_t NetRunner::pushImg(const char* img_path) {
     auto&& img = cv::imread(img_path, cv::IMREAD_COLOR);
+    std::remove(img_path);
     _imgs.push_back(img);
     return _imgs.size();
 }
@@ -50,9 +54,16 @@ int32_t NetRunner::pushImg(const char* img_path) {
 
 int32_t NetRunner::runNet(Frame* frames) {
     int32_t n_imgs = _imgs.size();
+    auto vframes = (*_net)(_imgs);
+    for (int i = 0; i < n_imgs; i++) {
+        auto bestFrame = *std::max_element(vframes[i].begin(),
+                                           vframes[i].end(),
+            [](const Frame& f1, const Frame& f2) {
+                return (f1.label == 3)*f1.prob < (f2.label == 3)*f2.prob;
+            });
+        frames[i] = bestFrame.label == 3 ? bestFrame : Frame(0,0,0,0,0,0);
+    }
     _imgs.clear();
-    for (int i = 0; i < n_imgs; i++)
-        frames[i] = Frame(i, 0.9, 0.4, 0.4, 0.6, 0.6);
     return n_imgs;
 }
 

@@ -72,7 +72,9 @@ getFrameList :: Int -> IO [Frame]
 getFrameList nFrames = do
     framesPtr <- mallocBytes (sizeOfFrame * nFrames)
     nFrames' <- runNet $ castPtr framesPtr
-    memToList [] framesPtr sizeOfFrame nFrames'
+    framesLst <- memToList [] framesPtr sizeOfFrame nFrames'
+    free framesPtr
+    return framesLst
 
 
 detectTarget :: String -> IO [Frame]

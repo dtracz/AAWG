@@ -98,14 +98,17 @@ std::vector<std::vector<Frame>> Net::operator()(std::vector<cv::Mat>& cv_imgs) {
     for (size_t i = 0; i < orginal_sizes.size(); i++) {
         torch::Tensor preds = tuple.elements().at(0).toTensor()[i];
         torch::Tensor frames = tuple.elements().at(1).toTensor()[i];
-
-        size_t n_results = _filter_results(&preds, &frames);
-        if(n_results > 0) {
-            frames.index({"...", 0}) *= orginal_sizes[i].width;
-            frames.index({"...", 1}) *= orginal_sizes[i].height;
-            frames.index({"...", 2}) *= orginal_sizes[i].width;
-            frames.index({"...", 3}) *= orginal_sizes[i].height;
-        }
+        
+        /*!
+         * it's best to have frames in range [0,1]
+         */
+        // size_t n_results = _filter_results(&preds, &frames);
+        // if(n_results > 0) {
+        //     frames.index({"...", 0}) *= orginal_sizes[i].width;
+        //     frames.index({"...", 1}) *= orginal_sizes[i].height;
+        //     frames.index({"...", 2}) *= orginal_sizes[i].width;
+        //     frames.index({"...", 3}) *= orginal_sizes[i].height;
+        // }
         auto result = _parse_frames(preds, frames);
         results.push_back(result);
     }

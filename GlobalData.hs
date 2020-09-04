@@ -1,14 +1,14 @@
 module GlobalData where
 
 import Foreign.C
-
+import "AC-Vector" Data.Vector
 
 
 data Frame = Frame 
         { label :: CInt
         , prob  :: Float
         , left  :: Float
-        , botom :: Float
+        , bottom :: Float
         , right :: Float
         , top   :: Float
         -- , frame :: Ptr () -- C++ constructor, ignoring
@@ -21,14 +21,21 @@ sizeOfFrame = 24 :: Int
 --     Frame label prob left botom right top nullPtr nullPtr
 
 
-data Position = Cartesian Double Double Double
-              | Spherical Double Double Double
-    deriving (Show)
+data Direction = Direction Scalar Scalar deriving (Show)
+
+data SpherPos = SpherPos Scalar Direction deriving (Show)
+
 
 
 _N_CAMS = 2 :: Int
 
-_LEFT_CAM_POS = Cartesian (-1.2) 0.2 0.75
-_RIGHT_CAM_POS = Cartesian 0.65 0.2 0.75
-_CNN_POS = Cartesian 0 0 0
+_LEFT_CAM_POS = Vector3 0.2 1.2 0.75
+_RIGHT_CAM_POS = Vector3 0.2 (-0.65) 0.75
+_CNN_POS = Vector3 0 0 0
+
+_LEFT_CAM_DIR = Direction 0 (pi/2)
+_RIGHT_CAM_DIR = Direction 0 (pi/2)
+
+_CAM_X_RANGE = pi/4
+_CAM_Y_RANGE = pi/4
 

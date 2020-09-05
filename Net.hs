@@ -77,12 +77,13 @@ getFrameList nFrames = do
     return framesLst
 
 
-detectTarget :: String -> IO [Frame]
+detectTarget :: String -> IO (Maybe [Frame])
 detectTarget fname = do
     nStored <- pushImg fname
-    if nStored == _N_CAMS then
-        getFrameList nStored
+    if nStored == _N_CAMS then do
+        frames <- getFrameList nStored
+        return $ Just frames
     else
-        return []
+        return Nothing
     
 

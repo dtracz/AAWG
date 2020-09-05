@@ -92,8 +92,10 @@ targetZ (Vector3 xl yl zl) (Vector3 xr yr zr) xy phi_l phi_r = let
     
 
 
-targetPosition :: Frame -> Frame -> Maybe Vector3
-targetPosition lc_frame rc_frame = let
+targetPosition :: (Frame, Frame) -> Maybe Vector3
+targetPosition (Frame 0 _ _ _ _ _, _) = Nothing
+targetPosition (_, Frame 0 _ _ _ _ _) = Nothing
+targetPosition (lc_frame, rc_frame) = let
     frame2anges = imgPos2angle . getFrameCenter
     (Direction theta_l phi_l) = _LEFT_CAM_DIR `add` (frame2anges lc_frame)
     (Direction theta_r phi_r) = _RIGHT_CAM_DIR `add` (frame2anges rc_frame)

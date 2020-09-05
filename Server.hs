@@ -9,6 +9,7 @@ import Data.Monoid
 import Data.ByteString.Base64
 import Data.Text.Internal
 import Codec.Picture
+import qualified Network.HTTP.Client as Client
 
 import Net
 import GlobalData 
@@ -65,4 +66,20 @@ bsbConst x = mconcat $ map copyByteString [ BU.fromString $ show x ]
 respConst :: Show a => a -> Response
 respConst x = responseBuilder status200 [("Content-Type", "text/html")] $ bsbConst x
 
+
+constructOrder :: String -> String -> Int -> IO Client.Request
+constructOrder content hostname port = do
+    let body = Client.RequestBodyBS $ BU.fromString content
+    req <- Client.parseRequest $ "POST http://" ++ hostname
+    return (req {Client.port = port, Client.requestBody = body})
+        
+    
+sendPost :: SpherPos -> IO ()
+sendPost targetPos = do
+    manager <- Client.newManager Client.defaultManagerSettings
+    req <- constructOrder (show targetPos) "localhost" 3100
+    response <- Client.httpLbs req manager
+    let obj = Client.responseBody response
+    putStrLn $ show obj
+    
 

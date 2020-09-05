@@ -56,6 +56,19 @@ respConst :: Show a => a -> Response
 respConst x = responseBuilder status200 [("Content-Type", "text/html")] $ bsbConst x
 
 
+getHeader :: Eq t => [(t, BU.ByteString)] -> t -> Maybe String
+getHeader [] target = Nothing
+getHeader ((key,val):hds) target
+    | key == target = Just (BU.toString val)
+    | otherwise = getHeader hds target
+    
+getImgName :: Request -> Maybe String
+getImgName req = do
+    let getHeader' = getHeader $ requestHeaders req
+    camside <- getHeader' "camside"
+    timestamp <- getHeader' "timestamp"
+    return $ camside ++ "_" ++ timestamp
+
 
 --RESPONDER---------------------------------------------------------------------
 
@@ -89,11 +102,15 @@ main = do
 
 app :: Request -> (Response -> IO b) -> IO b
 app req respond = do
-    let imgName = "test_name.jpg"
-    bs <- getImgBS req
-    res <- saveImage imgName bs
-    action imgName
-    respond $ respConst res
+    putStrLn $ show req
+    let imgName = getImgName req
+    case getImgName req of
+        Nothing -> respond $ respConst "headers unfound"
+        Just imgName -> do
+            bs <- getImgBS req
+            res <- saveImage imgName bs
+            action imgName
+            respond $ respConst res
 
 
 lst2tpl :: [a] -> (a, a)

@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <list>
+#include <mutex>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -61,6 +62,7 @@ std::string parseImgPath(std::string str) {
 int32_t NetRunner::pushImg(const char* img_path) {
     std::string imname = parseImgPath(img_path);
     auto&& img = cv::imread(img_path, cv::IMREAD_COLOR);
+    std::unique_lock<std::mutex> lock(_mtx);
     std::remove(img_path);
     _imgs.push_back(img);
     _imnames.push_back(imname);
@@ -119,6 +121,7 @@ int32_t NetRunner::_parseInpImgs() {
 
 
 int32_t NetRunner::runNet(Frame* frames) {
+    std::unique_lock<std::mutex> lock(_mtx);
     int32_t n_imgs = _parseInpImgs();
     if (n_imgs < 2) {
         for (int i = 0; i < n_imgs; i++)

@@ -1,6 +1,7 @@
 #ifndef TOOLKIT_H_
 #define TOOLKIT_H_
 
+#include <mutex>
 #include <string>
 #include <vector>
 #include <memory>
@@ -44,12 +45,11 @@ class FrameClass {
 class NetRunner {
   private:
     Net* _net;
+    std::mutex _mtx;
     std::vector<cv::Mat> _imgs;
     std::vector<std::string> _imnames;
 
     NetRunner(): _net(nullptr) { }
-    NetRunner(NetRunner&&) = default;
-    NetRunner& operator=(NetRunner&&) = default;
 
     int32_t _parseInpImgs();
 

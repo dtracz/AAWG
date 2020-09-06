@@ -11,6 +11,7 @@ import Data.Text.Internal
 import Codec.Picture
 import qualified Network.HTTP.Client as Client
 import Control.Monad.Trans.Maybe 
+import Control.Concurrent
 
 import Net
 import GlobalData 
@@ -108,7 +109,7 @@ app req respond = do
         Just imgName -> do
             bs <- getImgBS req
             res <- saveImage imgName bs
-            action imgName
+            thid <- forkIO $ action imgName
             respond $ respConst res
 
 

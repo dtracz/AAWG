@@ -102,7 +102,6 @@ main = do
 
 app :: Request -> (Response -> IO b) -> IO b
 app req respond = do
-    putStrLn $ show req
     let imgName = getImgName req
     case getImgName req of
         Nothing -> respond $ respConst "headers unfound"
@@ -113,8 +112,10 @@ app req respond = do
             respond $ respConst res
 
 
-lst2tpl :: [a] -> (a, a)
+lst2tpl :: [Frame] -> (Frame, Frame)
 lst2tpl (x:y:_) = (x,y)
+lst2tpl _ = (Frame 0 0 0 0 0 0, Frame 0 0 0 0 0 0)
+
 
 action :: String -> IO ()
 action imgName = do

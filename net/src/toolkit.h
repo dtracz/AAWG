@@ -1,6 +1,7 @@
 #ifndef TOOLKIT_H_
 #define TOOLKIT_H_
 
+#include <string>
 #include <vector>
 #include <memory>
 #include <opencv2/imgcodecs.hpp>
@@ -44,10 +45,13 @@ class NetRunner {
   private:
     Net* _net;
     std::vector<cv::Mat> _imgs;
+    std::vector<std::string> _imnames;
 
     NetRunner(): _net(nullptr) { }
     NetRunner(NetRunner&&) = default;
     NetRunner& operator=(NetRunner&&) = default;
+
+    int32_t _parseInpImgs();
 
   public:
     static NetRunner& getNetRunner(const char*);

@@ -1,4 +1,7 @@
 #include <algorithm>
+#include <list>
+#include <stdexcept>
+#include <string>
 #include <vector>
 #include <memory>
 #include <ostream>
@@ -44,16 +47,84 @@ NetRunner& NetRunner::getNetRunner(const char* model_path) {
 }
 
 
+std::string parseImgPath(std::string str) {
+    auto lastIdx = str.find_last_of(".");
+    lastIdx = lastIdx != std::string::npos ? lastIdx : str.length();
+    str = str.substr(0, lastIdx);
+    lastIdx = str.find_last_of("/");
+    lastIdx = lastIdx != std::string::npos ? lastIdx + 1 : 0;
+    str = str.substr(lastIdx, str.length() - lastIdx);
+    return str;
+}
+
+
 int32_t NetRunner::pushImg(const char* img_path) {
+    std::string imname = parseImgPath(img_path);
     auto&& img = cv::imread(img_path, cv::IMREAD_COLOR);
     std::remove(img_path);
     _imgs.push_back(img);
+    _imnames.push_back(imname);
     return _imgs.size();
 }
 
 
-int32_t NetRunner::runNet(Frame* frames) {
+uint64_t parseTS(std::string str) {
+    auto firstIdx = str.find_first_of("_") + 1;
+    str = str.substr(firstIdx, str.length() - firstIdx);
+    str.erase(std::remove(str.begin(), str.end(), ':'), str.end());
+    str.erase(std::remove(str.begin(), str.end(), '.'), str.end());
+    str.erase(std::remove(str.begin(), str.end(), '-'), str.end());
+    return std::stoull(str);
+}
+
+
+int32_t NetRunner::_parseInpImgs() {
     int32_t n_imgs = _imgs.size();
+    ssize_t bestLeftIdx = -1;
+    uint64_t bestLeftTS = 0;
+    ssize_t bestRightIdx = -1;
+    uint64_t bestRightTS = 0;
+    for (int i = 0; i < n_imgs; i++) {
+        auto ts = parseTS(_imnames[i]);
+        if (_imnames[i][0] == 'l') {
+            if (ts > bestLeftTS) {
+                bestLeftTS = ts;
+                bestLeftIdx = i;
+            }
+        } else if (_imnames[i][0] == 'r') {
+            if (ts > bestRightTS) {
+                bestRightTS = ts;
+                bestRightIdx = i;
+            }
+        } else {
+            throw std::invalid_argument("image name error");
+        }
+    }
+    if (bestLeftIdx != -1) {
+        std::swap(_imgs[0], _imgs[bestLeftIdx]);
+        std::swap(_imnames[0], _imnames[bestLeftIdx]);
+        if (bestRightIdx == 0)
+            bestRightIdx = bestLeftIdx;
+    }
+    if (bestRightIdx != -1 && n_imgs >= 2) {
+        size_t idxToSwap = n_imgs >= 2 ? 1 : 0;
+        std::swap(_imgs[idxToSwap], _imgs[bestRightIdx]);
+        std::swap(_imnames[idxToSwap], _imnames[bestRightIdx]);
+    }
+    n_imgs = (bestLeftIdx != -1) + (bestRightIdx != -1);
+    _imgs.resize(n_imgs);
+    _imnames.resize(n_imgs);
+    return n_imgs;
+}
+
+
+int32_t NetRunner::runNet(Frame* frames) {
+    int32_t n_imgs = _parseInpImgs();
+    if (n_imgs < 2) {
+        for (int i = 0; i < n_imgs; i++)
+            frames[i] = Frame(0,0,0,0,0,0);
+        return n_imgs;
+    }
     auto vframes = (*_net)(_imgs);
     for (int i = 0; i < n_imgs; i++) {
         auto bestFrame = *std::max_element(vframes[i].begin(),

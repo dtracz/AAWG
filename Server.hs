@@ -84,7 +84,7 @@ constructOrder content hostname port = do
 sendPost :: SpherPos -> IO String
 sendPost targetPos = do
     manager <- Client.newManager Client.defaultManagerSettings
-    req <- constructOrder (show targetPos) "localhost" 3100
+    req <- constructOrder (show targetPos) _TURRET_HOSTNAME _TURRET_PORT
     response <- Client.httpLbs req manager
     let obj = Client.responseBody response
     return $ show obj
@@ -96,7 +96,7 @@ sendPost targetPos = do
 
 main :: IO ()
 main = do
-    let port = 3000
+    let port = _SELF_PORT
     putStrLn $ "Listening on port " ++ show port
     run port app
 

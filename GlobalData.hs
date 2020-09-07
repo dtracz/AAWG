@@ -39,3 +39,7 @@ _RIGHT_CAM_DIR = Direction 0 (pi/2)
 _CAM_X_RANGE = pi/4
 _CAM_Y_RANGE = pi/4
 
+_SELF_PORT = 3000 :: Int
+_TURRET_HOSTNAME = "localhost"
+_TURRET_PORT = 3100 :: Int
+

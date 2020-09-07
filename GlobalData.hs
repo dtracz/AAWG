@@ -43,3 +43,4 @@ _SELF_PORT = 3000 :: Int
 _TURRET_HOSTNAME = "localhost"
 _TURRET_PORT = 3100 :: Int
 
+_TMP_IMG_PATH = "tmp/"

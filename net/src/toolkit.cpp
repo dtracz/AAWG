@@ -60,8 +60,8 @@ std::string parseImgPath(std::string str) {
 
 
 int32_t NetRunner::pushImg(const char* img_path) {
-    std::string imname = parseImgPath(img_path);
     auto&& img = cv::imread(img_path, cv::IMREAD_COLOR);
+    std::string imname = parseImgPath(img_path);
     std::unique_lock<std::mutex> lock(_mtx);
     std::remove(img_path);
     _imgs.push_back(img);

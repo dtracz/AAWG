@@ -68,7 +68,7 @@ getImgName req = do
     let getHeader' = getHeader $ requestHeaders req
     camside <- getHeader' "camside"
     timestamp <- getHeader' "timestamp"
-    return $ camside ++ "_" ++ timestamp ++ ".jpg"
+    return $ _TMP_IMG_PATH ++ camside ++ "_" ++ timestamp ++ ".jpg"
 
 
 --RESPONDER---------------------------------------------------------------------

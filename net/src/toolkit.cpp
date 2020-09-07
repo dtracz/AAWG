@@ -11,9 +11,9 @@
 
 
 std::ostream& operator<<(std::ostream& os, Frame f) {
-    os << f.label << " " << f.prob << " :\t"
-       << f.pos[0] << '\t'<<  f.pos[1] << '\t'
-       << f.pos[2] << '\t' << f.pos[3];
+    os << f.label << " " << f.prob << " : "
+       << f.pos[0] << ' '<<  f.pos[1] << ' '
+       << f.pos[2] << ' ' << f.pos[3];
     return os;
 }
 
@@ -138,6 +138,7 @@ int32_t NetRunner::runNet(Frame* frames) {
         frames[i] = bestFrame.label == 3 ? bestFrame : Frame(0,0,0,0,0,0);
     }
     _imgs.clear();
+    _imnames.clear();
     return n_imgs;
 }
 

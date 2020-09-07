@@ -68,7 +68,7 @@ getImgName req = do
     let getHeader' = getHeader $ requestHeaders req
     camside <- getHeader' "camside"
     timestamp <- getHeader' "timestamp"
-    return $ camside ++ "_" ++ timestamp
+    return $ camside ++ "_" ++ timestamp ++ ".jpg"
 
 
 --RESPONDER---------------------------------------------------------------------
@@ -123,7 +123,7 @@ action imgName = do
     frames <- detectTarget imgName
     let spherPos = ((fmap cart2spher) . targetPosition . lst2tpl) =<< frames
     mstr <- sequence $ fmap sendPost spherPos 
-    sequence $ fmap putStrLn mstr
+    -- sequence $ fmap putStrLn mstr
     return ()
     
 
